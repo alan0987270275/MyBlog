@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Connecting a device with ADB Wireless</title>
+    <url>/2021/01/24/adb-wireless/</url>
+    <content><![CDATA[<h4 id="疑難雜症"><a href="#疑難雜症" class="headerlink" title="疑難雜症"></a>疑難雜症</h4><p>在測試偵錯的時候，會需要用USB連接手機進行偵錯。但有時候USB線接觸不良或者是需要一次進行多台手機的測試偵錯，這時候桌上凌亂的USB線與不夠用USB孔總是令人困擾。所以總是在想是否有無線偵錯的方法。</p>
+<h4 id="ADB-Android-Debug-Bridge"><a href="#ADB-Android-Debug-Bridge" class="headerlink" title="ADB(Android Debug Bridge)"></a>ADB(Android Debug Bridge)</h4><p>ADB是一種多功能的工具能讓我們透過下指令的方式跟測試裝置進行溝通，對於測試有非常大的幫助。詳細的解說與如何安裝等請參考Google Developer相關連結。</p>
+<h5 id="Step-By-Step"><a href="#Step-By-Step" class="headerlink" title="Step By Step"></a>Step By Step</h5><ul>
+<li><p>在完全使用wifi來與裝置進行偵錯前，還是需要先透過USB線來連接第一次，當實體機連接成功後Android Studio上方將可以看到目前連接的設備有哪些<br><img src="/images/2020-01-24-abd-wireless/adb-running-device.png" alt="adb-running-device"></p>
+</li>
+<li><p>指定一台裝置並開啟port 5555讓裝置可以用Wifi連接上 :</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">adb -s [裝置代號] tcpip 5555</span><br></pre></td></tr></table></figure>
+<p>看到這項指令會有兩個疑問：</p>
+<ul>
+<li>怎麼查看裝置代號?</li>
+<li>為啥要監聽5555 port?</li>
+</ul>
+<ol>
+<li><p>首先要怎麼查看裝置代號呢？<br>一樣可以透過adb指令來進行查看有哪些裝置連接上：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">adb devices</span><br></pre></td></tr></table></figure>
+<p><img src="/images/2020-01-24-abd-wireless/adb-devices.png" alt="adb-devices"><br>之後只要將[裝置代號]改成要設定的即可。<br><img src="/images/2020-01-24-abd-wireless/adb-tcpip-5555.png" alt="adb-tcpip-5555"></p>
+</li>
+<li><p>為啥要監聽5555 port?<br>詳情可以參考 <a class="link"   href="https://developer.android.com/studio/command-line/adb#howadbworks" >https://developer.android.com/studio/command-line/adb#howadbworks<i class="fas fa-external-link-alt"></i></a><br>簡單來說adb會對全部正在執行的裝置建立connection，port的範圍從5555 到 5585，而單數的的port是給console使用，偶數的是給adb使用。大致如下：<br>Emulator 1, console: 5554<br>Emulator 1, adb: 5555<br>Emulator 2, console: 5556<br>Emulator 2, adb: 5557<br>…</p>
+</li>
+</ol>
+</li>
+<li><p>透過網路IP來連接裝置 :</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">adb connect [裝置IP]</span><br></pre></td></tr></table></figure>
+<p>在這邊會遇到一個問題要如何去查看手機的IP位置呢？可以直接透過手機去查看，但不同手機有不同的查看方式，因此一樣可以使用adb指令來幫忙。<br>輸入指令來查看裝置的IP位置：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">adb -s [裝置代號] shell ifconfig</span><br></pre></td></tr></table></figure>
+<p>當輸入完指令會跑出許多的資訊，找尋wlan的區塊然後找到紅色圈起來的地方，那串就是裝置的IP<br><img src="/images/2020-01-24-abd-wireless/adb-ip-address.png" alt="adb-ip-address"></p>
+</li>
+</ul>
+<p>接著輸入透過網路IP來連接裝置的指令並且將剛剛查找到的IP填上<br><img src="/images/2020-01-24-abd-wireless/adb-connect.png" alt="adb-connect"></p>
+<ul>
+<li>檢查已經連線<br>重新輸入查看有哪些裝置連接上的指令：<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">adb devices</span><br></pre></td></tr></table></figure>
+<img src="/images/2020-01-24-abd-wireless/adb-devices-finish-check.png" alt="adb-devices-finish-check"></li>
+</ul>
+<p>當你看到這個畫面的時候，漂亮！！大功告成，終於可以擺脫煩人的USB線跟不夠使用的USB孔了！！</p>
+<h4 id="操作時可能會遇到的問題"><a href="#操作時可能會遇到的問題" class="headerlink" title="操作時可能會遇到的問題"></a>操作時可能會遇到的問題</h4><p>在設定無線偵錯時，我最常遇到的錯誤是下了一些相關指令會噴錯誤xxxxxxxx unauthenticatec 或者是 failed to authenticate等等。<br><img src="/images/2020-01-24-abd-wireless/adb-failed-tcpip.png" alt="adb-failed-tcpip"><br><img src="/images/2020-01-24-abd-wireless/adb-failed-connect.png" alt="adb-failed-connect"></p>
+<p>解決方法是，在最一開始的步驟：需要插上USB線進行偵錯時會跳出一個視窗詢問是否要進行偵錯，這時候記得打勾永遠允許這台電腦，那麼之後輸入相關的指令的時候就不會重複跳出這個視窗進行詢問。這樣一來在輸入剛剛上述的指令的時候就不會出現錯誤。<br><img src="/images/2020-01-24-abd-wireless/usb-debug.png" alt="usb-debug"></p>
+<p>詳情可以查看這篇 <a class="link"   href="https://stackoverflow.com/questions/19485467/failed-to-authenticate-to-ip-adb-wifi" >https://stackoverflow.com/questions/19485467/failed-to-authenticate-to-ip-adb-wifi<i class="fas fa-external-link-alt"></i></a></p>
+<h4 id="相關連結"><a href="#相關連結" class="headerlink" title="相關連結"></a>相關連結</h4><p><a class="link"   href="https://developer.android.com/studio/command-line/adb" >https://developer.android.com/studio/command-line/adb<i class="fas fa-external-link-alt"></i></a><br><a class="link"   href="https://stackoverflow.com/questions/19485467/failed-to-authenticate-to-ip-adb-wifi" >https://stackoverflow.com/questions/19485467/failed-to-authenticate-to-ip-adb-wifi<i class="fas fa-external-link-alt"></i></a></p>
+]]></content>
+      <categories>
+        <category>Android雜記</category>
+      </categories>
+      <tags>
+        <tag>Android</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Android 支援繁體中文</title>
+    <url>/2021/01/04/Locale/</url>
+    <content><![CDATA[<h4 id="前情提要"><a href="#前情提要" class="headerlink" title="前情提要"></a>前情提要</h4><p>在開發Android App的時候會希望能根據使用者所選擇的不同地區顯示出不同的語言。也就是<em>Localize your app</em>。那要要如何將App能支援呢？詳細教學參考<a class="link"   href="https://developer.android.com/guide/topics/resources/localization" >Google Developer文件<i class="fas fa-external-link-alt"></i></a></p>
+<h4 id="疑難雜症"><a href="#疑難雜症" class="headerlink" title="疑難雜症"></a>疑難雜症</h4><p>接到某些舊專案時，發現專案確實有照著文件說明去進行設定;在<em>res/values</em>當中有定義 <code>zh</code>的檔案，但在測試時發現不論怎麼切換手機中的Locale都還是無法正確地顯示出繁體中文。查找資料後才發現在<em>TargetSDK＝25</em>也就是Android 7.0後要顯示繁體中文的話需要將 <code>values-zh</code>改為<code>values-zh-rHK</code>或<code>values-zh-rTW</code>。</p>
+<p>會造成上述的現象是在Android 7.0，任何 <code>values-zh-HK、values-zh-TW、values-zh-MO</code>中找不到的話都會變成<code>values</code>而不是<code>values-zh</code>。</p>
+<h4 id="相關連結"><a href="#相關連結" class="headerlink" title="相關連結"></a>相關連結</h4><p><a class="link"   href="https://developer.android.com/guide/topics/resources/multilingual-support.html" >https://developer.android.com/guide/topics/resources/multilingual-support.html<i class="fas fa-external-link-alt"></i></a></p>
+]]></content>
+      <categories>
+        <category>Android雜記</category>
+      </categories>
+      <tags>
+        <tag>Android</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/2020/12/15/hello-world/</url>
+    <content><![CDATA[<p>Welcome to <a class="link"   href="https://hexo.io/" >Hexo<i class="fas fa-external-link-alt"></i></a>! This is your very first post. Check <a class="link"   href="https://hexo.io/docs/" >documentation<i class="fas fa-external-link-alt"></i></a> for more info. If you get any problems when using Hexo, you can find the answer in <a class="link"   href="https://hexo.io/docs/troubleshooting.html" >troubleshooting<i class="fas fa-external-link-alt"></i></a> or you can ask me on <a class="link"   href="https://github.com/hexojs/hexo/issues" >GitHub<i class="fas fa-external-link-alt"></i></a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a class="link"   href="https://hexo.io/docs/writing.html" >Writing<i class="fas fa-external-link-alt"></i></a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a class="link"   href="https://hexo.io/docs/server.html" >Server<i class="fas fa-external-link-alt"></i></a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a class="link"   href="https://hexo.io/docs/generating.html" >Generating<i class="fas fa-external-link-alt"></i></a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a class="link"   href="https://hexo.io/docs/one-command-deployment.html" >Deployment<i class="fas fa-external-link-alt"></i></a></p>
+]]></content>
+  </entry>
+</search>
