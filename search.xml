@@ -2,7 +2,7 @@
 <search>
   <entry>
     <title>Android 支援繁體中文</title>
-    <url>MyBlog/2021/01/04/Locale/</url>
+    <url>/MyBlog/2021/01/04/Locale/</url>
     <content><![CDATA[<h4 id="前情提要"><a href="#前情提要" class="headerlink" title="前情提要"></a>前情提要</h4><p>在開發Android App的時候會希望能根據使用者所選擇的不同地區顯示出不同的語言。也就是<em>Localize your app</em>。那要要如何將App能支援呢？詳細教學參考<a class="link"   href="https://developer.android.com/guide/topics/resources/localization" >Google Developer文件<i class="fas fa-external-link-alt"></i></a></p>
 <h4 id="疑難雜症"><a href="#疑難雜症" class="headerlink" title="疑難雜症"></a>疑難雜症</h4><p>接到某些舊專案時，發現專案確實有照著文件說明去進行設定;在<em>res/values</em>當中有定義 <code>zh</code>的檔案，但在測試時發現不論怎麼切換手機中的Locale都還是無法正確地顯示出繁體中文。查找資料後才發現在<em>TargetSDK＝25</em>也就是Android 7.0後要顯示繁體中文的話需要將 <code>values-zh</code>改為<code>values-zh-rHK</code>或<code>values-zh-rTW</code>。</p>
 <p>會造成上述的現象是在Android 7.0，任何 <code>values-zh-HK、values-zh-TW、values-zh-MO</code>中找不到的話都會變成<code>values</code>而不是<code>values-zh</code>。</p>
@@ -17,7 +17,7 @@
   </entry>
   <entry>
     <title>Connecting a device with ADB Wireless</title>
-    <url>MyBlog/2021/01/24/adb-wireless/</url>
+    <url>/MyBlog/2021/01/24/adb-wireless/</url>
     <content><![CDATA[<h4 id="疑難雜症"><a href="#疑難雜症" class="headerlink" title="疑難雜症"></a>疑難雜症</h4><p>在測試偵錯的時候，會需要用USB連接手機進行偵錯。但有時候USB線接觸不良或者是需要一次進行多台手機的測試偵錯，這時候桌上凌亂的USB線與不夠用USB孔總是令人困擾。所以總是在想是否有無線偵錯的方法。</p>
 <h4 id="ADB-Android-Debug-Bridge"><a href="#ADB-Android-Debug-Bridge" class="headerlink" title="ADB(Android Debug Bridge)"></a>ADB(Android Debug Bridge)</h4><p>ADB是一種多功能的工具能讓我們透過下指令的方式跟測試裝置進行溝通，對於測試有非常大的幫助。詳細的解說與如何安裝等請參考Google Developer相關連結。</p>
 <h5 id="Step-By-Step"><a href="#Step-By-Step" class="headerlink" title="Step By Step"></a>Step By Step</h5><ul>
@@ -66,7 +66,7 @@
   </entry>
   <entry>
     <title>Hello World</title>
-    <url>MyBlog/2020/12/15/hello-world/</url>
+    <url>/MyBlog/2020/12/15/hello-world/</url>
     <content><![CDATA[<p>Welcome to <a class="link"   href="https://hexo.io/" >Hexo<i class="fas fa-external-link-alt"></i></a>! This is your very first post. Check <a class="link"   href="https://hexo.io/docs/" >documentation<i class="fas fa-external-link-alt"></i></a> for more info. If you get any problems when using Hexo, you can find the answer in <a class="link"   href="https://hexo.io/docs/troubleshooting.html" >troubleshooting<i class="fas fa-external-link-alt"></i></a> or you can ask me on <a class="link"   href="https://github.com/hexojs/hexo/issues" >GitHub<i class="fas fa-external-link-alt"></i></a>.</p>
 <h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
 
