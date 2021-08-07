@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     
     <title>
-        Connecting a device with ADB Wireless |
+        myImageLoder |
         
         Alan Blog
     </title>
@@ -153,7 +153,7 @@
     <div class="article-content-container">
 
         <div class="article-title">
-            <span class="title-hover-animation">Connecting a device with ADB Wireless</span>
+            <span class="title-hover-animation">myImageLoder</span>
         </div>
 
         
@@ -169,7 +169,7 @@
                     <div class="meta-info">
                         <div class="article-meta-info">
     <span class="article-date article-meta-item">
-        <i class="fas fa-calendar"></i> 2021-01-24 19:41:46
+        <i class="fas fa-calendar"></i> 2021-08-07 15:17:35
     </span>
     
         <span class="article-categories article-meta-item">
@@ -177,7 +177,7 @@
             <ul>
                 
                     <li>
-                        <a href="/MyBlog/categories/Android%E9%9B%9C%E8%A8%98/">Android雜記</a>
+                        <a href="/MyBlog/categories/Android-Development/">Android Development</a>
                     </li>
                 
             </ul>
@@ -208,44 +208,80 @@
         
 
         <div class="article-content markdown-body">
-            <h4 id="疑難雜症"><a href="#疑難雜症" class="headerlink" title="疑難雜症"></a>疑難雜症</h4><p>在測試偵錯的時候，會需要用USB連接手機進行偵錯。但有時候USB線接觸不良或者是需要一次進行多台手機的測試偵錯，這時候桌上凌亂的USB線與不夠用USB孔總是令人困擾。所以總是在想是否有無線偵錯的方法。</p>
-<h4 id="ADB-Android-Debug-Bridge"><a href="#ADB-Android-Debug-Bridge" class="headerlink" title="ADB(Android Debug Bridge)"></a>ADB(Android Debug Bridge)</h4><p>ADB是一種多功能的工具能讓我們透過下指令的方式跟測試裝置進行溝通，對於測試有非常大的幫助。詳細的解說與如何安裝等請參考Google Developer相關連結。</p>
-<h5 id="Step-By-Step"><a href="#Step-By-Step" class="headerlink" title="Step By Step"></a>Step By Step</h5><ul>
-<li><p>在完全使用wifi來與裝置進行偵錯前，還是需要先透過USB線來連接第一次，當實體機連接成功後Android Studio上方將可以看到目前連接的設備有哪些<br><img src="/images/2020-01-24-abd-wireless/adb-running-device.png" alt="adb-running-device"></p>
+            <h4 id="前情提要"><a href="#前情提要" class="headerlink" title="前情提要"></a>前情提要</h4><p>在Android開發過程中，一定很常會遇到圖片相關的問題，例如如何下載，如何顯示等等。我們不外乎會使用一些Library像是<a class="link"   target="_blank" rel="noopener" href="https://github.com/bumptech/glide" >Glide<i class="fas fa-external-link-alt"></i></a>, <a class="link"   target="_blank" rel="noopener" href="https://github.com/square/picasso" >Picasso<i class="fas fa-external-link-alt"></i></a>, <a class="link"   target="_blank" rel="noopener" href="https://github.com/coil-kt/coil" >Coil<i class="fas fa-external-link-alt"></i></a>等等來幫助我們處理。不重複造輪子確實能加速開發效率，但難免對於自己所使用的Library沒有真正的了解。因此這次突發奇想，來嘗試自己寫一個很簡易的<code>ImageLoader</code>。</p>
+<h4 id="功能與要求"><a href="#功能與要求" class="headerlink" title="功能與要求"></a>功能與要求</h4><ol>
+<li>可以加載網路下載的圖片與本地端的資源。</li>
+<li>可以顯示在ImageView裡面，同時也支援顯示在RecyclerView等等這種需要多次加載場景。</li>
+<li>能有效的利用cache機制來降低重複下載圖片</li>
+<li>能支援對圖片進行transformations</li>
+</ol>
+<h4 id="技術設計與思考"><a href="#技術設計與思考" class="headerlink" title="技術設計與思考"></a>技術設計與思考</h4><h5 id="架構與元件"><a href="#架構與元件" class="headerlink" title="架構與元件"></a>架構與元件</h5><p><img src="https://i.imgur.com/DfFtYQx.png" alt="Work Flow"></p>
+<table>
+<thead>
+<tr>
+<th align="left">元件</th>
+<th align="left">描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">ImageRequest</td>
+<td align="left">一個 <code>value object</code> 提供資訊給ImageLoader要如何加載圖片，像是有沒有<code>placeholder</code>, <code>error</code>, <code>transformations</code></td>
+</tr>
+<tr>
+<td align="left">ImageLoader</td>
+<td align="left">這是整個Library核心，加載圖片的邏輯都在這邊</td>
+</tr>
+<tr>
+<td align="left">MemoryCache</td>
+<td align="left">用來緩存圖片並且提供資源給BitmapPool來產生<code>reusable bitmap</code></td>
+</tr>
+<tr>
+<td align="left">DownLoader</td>
+<td align="left">用來處理從網路或是file system中抓取圖片</td>
+</tr>
+<tr>
+<td align="left">Decoder</td>
+<td align="left">用來處理decode InuptSteam 跟調整Bitamp大小</td>
+</tr>
+<tr>
+<td align="left">BitmapPool</td>
+<td align="left">一個Hashset用來存<code>reusable bitmap</code>並提供給Decoder使用</td>
+</tr>
+</tbody></table>
+<h5 id="如何處理Threading？"><a href="#如何處理Threading？" class="headerlink" title="如何處理Threading？"></a>如何處理Threading？</h5><p>網路下載圖片或是從File System拿取圖片都是屬於長時間的操作，需要在<code>background thread</code>執行才不會阻擋住 main thread(UI Thread)。我們可以使用<a class="link"   target="_blank" rel="noopener" href="https://kotlinlang.org/docs/reference/coroutines/coroutines-guide.html" >Coroutines<i class="fas fa-external-link-alt"></i></a>來幫助我們。如何使用<a class="link"   target="_blank" rel="noopener" href="https://developer.android.com/kotlin/coroutines" >Coroutines for Android<i class="fas fa-external-link-alt"></i></a>。</p>
+<p>在這個章節主要想要討論的是要怎麼避免memory leak或是work leaks。要處理這個問題需要依賴<a class="link"   target="_blank" rel="noopener" href="https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-scope/" >CoroutineScope<i class="fas fa-external-link-alt"></i></a>，負責幫我們追蹤任何透過他所產生的Coroutines。而任何正在執行Coroutines也能透過呼叫<code>scope.cancel() </code>來停止。在Android中KTX libraries有提供了專門符合Android Lifecycle的<a class="link"   target="_blank" rel="noopener" href="https://developer.android.com/topic/libraries/architecture/coroutines" >CoroutineScope<i class="fas fa-external-link-alt"></i></a>。在這個Library中，當使用想要呼叫加載圖片的時候，需要傳入相對應的Lifycycle參數。來避免出現work leaks的情形。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">imageView.load(testingUrl[index] <span class="keyword">as</span> String, <span class="keyword">this</span><span class="symbol">@SingleViewActivity</span>) &#123;</span><br><span class="line">   placeholder(R.drawable.ic_baseline_cloud_download_24)</span><br><span class="line">   error(R.drawable.ic_baseline_error_24)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="如何提供Caching機制？"><a href="#如何提供Caching機制？" class="headerlink" title="如何提供Caching機制？"></a>如何提供Caching機制？</h5><p>想像一個很常見RecyclerView場景，當使用者往下滑完後想要往上滑時，會重新binding UI。那如果剛好這些圖片都要從網路上下載的話，就必須要重新下載一次，造成網路的浪費或甚至會產生UI的卡頓。因此為了解決這個問題，我們需要有個Caching機制來解決這個問題。最常見的兩種cache就是Memory Cache和Disk Cache。</p>
+<table>
+<thead>
+<tr>
+<th align="left"></th>
+<th align="left">Pros</th>
+<th align="left">Cons</th>
+<th align="left">Implementation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Memory Cache</td>
+<td align="left">較快的讀取速度</td>
+<td align="left">當app被殺掉，存的資料也跟著被刪除<br>較小的儲存容量</td>
+<td align="left"><a class="link"   target="_blank" rel="noopener" href="https://developer.android.com/reference/android/util/LruCache" >LruCache<i class="fas fa-external-link-alt"></i></a></td>
+</tr>
+<tr>
+<td align="left">Disk Cache</td>
+<td align="left">較慢的讀取速度</td>
+<td align="left">資料會永久的存在硬碟<br>較大的儲存容量</td>
+<td align="left"><a class="link"   target="_blank" rel="noopener" href="https://square.github.io/okhttp/caching/" >OkHttp built-in cache<i class="fas fa-external-link-alt"></i></a></td>
+</tr>
+</tbody></table>
+<p>了解上述兩種不同Cache的優缺點後，決定把他們結合起來使用，達到揚長避短的效果。<br><img src="https://i.imgur.com/3G4Auen.png" alt="Cache Mechanism"></p>
+<h5 id="如何優化bitmap-memory-usage？"><a href="#如何優化bitmap-memory-usage？" class="headerlink" title="如何優化bitmap memory usage？"></a>如何優化bitmap memory usage？</h5><ol>
+<li><p>避免加載太大尺寸的bitap到記憶體中<br>從網路上下載的圖片尺寸百百種，通常圖片大小太大的話會佔用較大的空間，甚至超過了手機的螢幕大小。因此直接將一張過大的畫面加載進來的話是十分消耗記憶體且沒有任何好處的一個作法。因此我們要做的事情應該是將要加載的圖片調整成符合我們UI的大小，以此來達到節省記憶。要如何實作這個技巧呢？可以參考<a class="link"   target="_blank" rel="noopener" href="https://developer.android.com/topic/performance/graphics/load-bitmap" >這篇文章<i class="fas fa-external-link-alt"></i></a><br><img src="https://i.imgur.com/FfN5xoa.png" alt="Imgur"></p>
 </li>
-<li><p>指定一台裝置並開啟port 5555讓裝置可以用Wifi連接上 :</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">adb -s [裝置代號] tcpip 5555</span><br></pre></td></tr></table></figure>
-<p>看到這項指令會有兩個疑問：</p>
-<ul>
-<li>怎麼查看裝置代號?</li>
-<li>為啥要監聽5555 port?</li>
-</ul>
-<ol>
-<li><p>首先要怎麼查看裝置代號呢？<br>一樣可以透過adb指令來進行查看有哪些裝置連接上：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">adb devices</span><br></pre></td></tr></table></figure>
-<p><img src="/images/2020-01-24-abd-wireless/adb-devices.png" alt="adb-devices"><br>之後只要將[裝置代號]改成要設定的即可。<br><img src="/images/2020-01-24-abd-wireless/adb-tcpip-5555.png" alt="adb-tcpip-5555"></p>
-</li>
-<li><p>為啥要監聽5555 port?<br>詳情可以參考 <a class="link"   target="_blank" rel="noopener" href="https://developer.android.com/studio/command-line/adb#howadbworks" >https://developer.android.com/studio/command-line/adb#howadbworks<i class="fas fa-external-link-alt"></i></a><br>簡單來說adb會對全部正在執行的裝置建立connection，port的範圍從5555 到 5585，而單數的的port是給console使用，偶數的是給adb使用。大致如下：<br>Emulator 1, console: 5554<br>Emulator 1, adb: 5555<br>Emulator 2, console: 5556<br>Emulator 2, adb: 5557<br>…</p>
+<li><p>善加利用GC和Bitmap reuse<br>有時候在使用App的時候，尤其是在滑有大量圖片的RecyclerView的時候會發現怎麼會畫面卡卡。那很有可能是因為GC正在做事，而造成了卡頓。為了要減少GC一直幫我們回收Bitmap。我們應該要善加利用可以重複使用的Bitmap。因此我們需要實作一個很簡易的<code>Bitmap Pool</code>來去存可以重複使用的Bitmap，並在Decoding的時候重複使用這些Bitamp。要如何實作這個技巧呢？可以參考<a class="link"   target="_blank" rel="noopener" href="https://developer.android.com/topic/performance/graphics/manage-memory#kotlin" >這篇文章<i class="fas fa-external-link-alt"></i></a><br><img src="https://i.imgur.com/TsVmqEn.png" alt="Imgur"></p>
 </li>
 </ol>
-</li>
-<li><p>透過網路IP來連接裝置 :</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">adb connect [裝置IP]</span><br></pre></td></tr></table></figure>
-<p>在這邊會遇到一個問題要如何去查看手機的IP位置呢？可以直接透過手機去查看，但不同手機有不同的查看方式，因此一樣可以使用adb指令來幫忙。<br>輸入指令來查看裝置的IP位置：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">adb -s [裝置代號] shell ifconfig</span><br></pre></td></tr></table></figure>
-<p>當輸入完指令會跑出許多的資訊，找尋wlan的區塊然後找到紅色圈起來的地方，那串就是裝置的IP<br><img src="/images/2020-01-24-abd-wireless/adb-ip-address.png" alt="adb-ip-address"></p>
-</li>
-</ul>
-<p>接著輸入透過網路IP來連接裝置的指令並且將剛剛查找到的IP填上<br><img src="/images/2020-01-24-abd-wireless/adb-connect.png" alt="adb-connect"></p>
-<ul>
-<li>檢查已經連線<br>重新輸入查看有哪些裝置連接上的指令：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">adb devices</span><br></pre></td></tr></table></figure>
-<img src="/images/2020-01-24-abd-wireless/adb-devices-finish-check.png" alt="adb-devices-finish-check"></li>
-</ul>
-<p>當你看到這個畫面的時候，漂亮！！大功告成，終於可以擺脫煩人的USB線跟不夠使用的USB孔了！！</p>
-<h4 id="操作時可能會遇到的問題"><a href="#操作時可能會遇到的問題" class="headerlink" title="操作時可能會遇到的問題"></a>操作時可能會遇到的問題</h4><p>在設定無線偵錯時，我最常遇到的錯誤是下了一些相關指令會噴錯誤xxxxxxxx unauthenticatec 或者是 failed to authenticate等等。<br><img src="/images/2020-01-24-abd-wireless/adb-failed-tcpip.png" alt="adb-failed-tcpip"><br><img src="/images/2020-01-24-abd-wireless/adb-failed-connect.png" alt="adb-failed-connect"></p>
-<p>解決方法是，在最一開始的步驟：需要插上USB線進行偵錯時會跳出一個視窗詢問是否要進行偵錯，這時候記得打勾永遠允許這台電腦，那麼之後輸入相關的指令的時候就不會重複跳出這個視窗進行詢問。這樣一來在輸入剛剛上述的指令的時候就不會出現錯誤。<br><img src="/images/2020-01-24-abd-wireless/usb-debug.png" alt="usb-debug"></p>
-<p>詳情可以查看這篇 <a class="link"   target="_blank" rel="noopener" href="https://stackoverflow.com/questions/19485467/failed-to-authenticate-to-ip-adb-wifi" >https://stackoverflow.com/questions/19485467/failed-to-authenticate-to-ip-adb-wifi<i class="fas fa-external-link-alt"></i></a></p>
-<h4 id="相關連結"><a href="#相關連結" class="headerlink" title="相關連結"></a>相關連結</h4><p><a class="link"   target="_blank" rel="noopener" href="https://developer.android.com/studio/command-line/adb" >https://developer.android.com/studio/command-line/adb<i class="fas fa-external-link-alt"></i></a><br><a class="link"   target="_blank" rel="noopener" href="https://stackoverflow.com/questions/19485467/failed-to-authenticate-to-ip-adb-wifi" >https://stackoverflow.com/questions/19485467/failed-to-authenticate-to-ip-adb-wifi<i class="fas fa-external-link-alt"></i></a></p>
+<h4 id="結論"><a href="#結論" class="headerlink" title="結論"></a>結論</h4><p>在這次的實作過程中，發現了自己對於ImageLoader相關的Lib有個宏觀的了解，很感動這些Lib在背後默默的幫助我們做好多事情。當然這只是一個非常簡易的練習，並不推薦拿來真正的Production上使用。<br><a class="link"   target="_blank" rel="noopener" href="https://github.com/alan0987270275/MyImageLoader" >GitHub Repo<i class="fas fa-external-link-alt"></i></a></p>
 
         </div>
 
@@ -253,11 +289,11 @@
             <div class="post-copyright-info">
                 <div class="article-copyright-info-container">
     <ul>
-        <li>Post title：Connecting a device with ADB Wireless</li>
+        <li>Post title：myImageLoder</li>
         <li>Post author：Alan Lin</li>
-        <li>Create time：2021-01-24 19:41:46</li>
+        <li>Create time：2021-08-07 15:17:35</li>
         <li>
-            Post link：https://alan0987270275.github.io/MyBlog2021/01/24/adb-wireless/
+            Post link：https://alan0987270275.github.io/MyBlog2021/08/07/myImageLoder/
         </li>
         <li>
             Copyright Notice：All articles in this blog are licensed under <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh">BY-NC-SA</a> unless stating additionally.
@@ -271,29 +307,14 @@
         
             <div class="article-nav">
                 
-                    <div class="article-prev">
-                        <a class="prev"
-                           rel="prev"
-                           href="/MyBlog/2021/08/07/myImageLoder/"
-                        >
-                            <span class="left arrow-icon flex-center" >
-                              <i class="fas fa-chevron-left"></i>
-                            </span>
-                            <span class="title flex-center">
-                                <span class="post-nav-title-item">myImageLoder</span>
-                                <span class="post-nav-item">Prev posts</span>
-                            </span>
-                        </a>
-                    </div>
-                
                 
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/MyBlog/2021/01/04/Locale/"
+                           href="/MyBlog/2021/01/24/adb-wireless/"
                         >
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Android 支援繁體中文</span>
+                                <span class="post-nav-title-item">Connecting a device with ADB Wireless</span>
                                 <span class="post-nav-item">Next posts</span>
                             </span>
                             <span class="right arrow-icon flex-center" >
@@ -406,7 +427,7 @@
         
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%96%91%E9%9B%A3%E9%9B%9C%E7%97%87"><span class="nav-number">1.</span> <span class="nav-text">疑難雜症</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ADB-Android-Debug-Bridge"><span class="nav-number">2.</span> <span class="nav-text">ADB(Android Debug Bridge)</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Step-By-Step"><span class="nav-number">2.1.</span> <span class="nav-text">Step By Step</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%93%8D%E4%BD%9C%E6%99%82%E5%8F%AF%E8%83%BD%E6%9C%83%E9%81%87%E5%88%B0%E7%9A%84%E5%95%8F%E9%A1%8C"><span class="nav-number">3.</span> <span class="nav-text">操作時可能會遇到的問題</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%9B%B8%E9%97%9C%E9%80%A3%E7%B5%90"><span class="nav-number">4.</span> <span class="nav-text">相關連結</span></a></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%89%8D%E6%83%85%E6%8F%90%E8%A6%81"><span class="nav-number">1.</span> <span class="nav-text">前情提要</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%88%87%E8%A6%81%E6%B1%82"><span class="nav-number">2.</span> <span class="nav-text">功能與要求</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8A%80%E8%A1%93%E8%A8%AD%E8%A8%88%E8%88%87%E6%80%9D%E8%80%83"><span class="nav-number">3.</span> <span class="nav-text">技術設計與思考</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%9E%B6%E6%A7%8B%E8%88%87%E5%85%83%E4%BB%B6"><span class="nav-number">3.1.</span> <span class="nav-text">架構與元件</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E8%99%95%E7%90%86Threading%EF%BC%9F"><span class="nav-number">3.2.</span> <span class="nav-text">如何處理Threading？</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E6%8F%90%E4%BE%9BCaching%E6%A9%9F%E5%88%B6%EF%BC%9F"><span class="nav-number">3.3.</span> <span class="nav-text">如何提供Caching機制？</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E5%84%AA%E5%8C%96bitmap-memory-usage%EF%BC%9F"><span class="nav-number">3.4.</span> <span class="nav-text">如何優化bitmap memory usage？</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%B5%90%E8%AB%96"><span class="nav-number">4.</span> <span class="nav-text">結論</span></a></li></ol>
     </div>
 </div>
         
